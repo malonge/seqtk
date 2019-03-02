@@ -1326,13 +1326,11 @@ int stk_seq(int argc, char *argv[])
 			if (i < seq->seq.l) continue;
 		}
 
-		// Something in this block is causing a segfault
 		// If the -D flag has been invoked, check the heaer for membership, and only print if not there.
         if (flag & 1024){
             // Check if this header has been seen already.
             dup_k = kh_get(32, dup_h, seq->name.s);
             dup_is_missing = (dup_k == kh_end(dup_h));
-            // somewhere in here
             if (dup_is_missing){
                 stk_printseq(seq, line_len);
                 kh_put(32, dup_h, seq->name.s, &dup_ret); // Add the header to the hash
