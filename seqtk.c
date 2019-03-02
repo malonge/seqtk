@@ -46,6 +46,7 @@ typedef struct {
 #include "khash.h"
 KHASH_MAP_INIT_STR(reg, reglist_t)
 KHASH_SET_INIT_INT64(64)
+KHASH_SET_INIT_STR(32)
 
 typedef kh_reg_t reghash_t;
 
@@ -1186,7 +1187,12 @@ int stk_seq(int argc, char *argv[])
 	khash_t(reg) *h = 0;
 	krand_t *kr = 0;
 
-	while ((c = getopt(argc, argv, "N12q:l:Q:aACrn:s:f:M:L:cVUX:SF:")) >= 0) {
+	// Initialize the set of headers
+	khash_t(32) *dup_h = kh_init(32);
+	int dup_ret, dup_is_missing;
+	khiter_t dup_k;
+
+	while ((c = getopt(argc, argv, "N12q:l:Q:aACrn:s:f:M:L:cVUX:SF:D")) >= 0) {
 		switch (c) {
 			case 'a':
 			case 'A': flag |= 1; break;
@@ -1199,6 +1205,7 @@ int stk_seq(int argc, char *argv[])
 			case 'N': flag |= 128; break;
 			case 'U': flag |= 256; break;
 			case 'S': flag |= 512; break;
+            case 'D': flag |= 1024; break;
 			case 'M': h = stk_reg_read(optarg); break;
 			case 'n': mask_chr = *optarg; break;
 			case 'Q': qual_shift = atoi(optarg); break;
@@ -1235,6 +1242,7 @@ int stk_seq(int argc, char *argv[])
 		fprintf(stderr, "         -V        shift quality by '(-Q) - 33'\n");
 		fprintf(stderr, "         -U        convert all bases to uppercases\n");
 		fprintf(stderr, "         -S        strip of white spaces in sequences\n");
+		fprintf(stderr, "         -D        remove reads with duplicated headers\n");
 		fprintf(stderr, "\n");
 		free(kr);
 		return 1;
@@ -1317,7 +1325,21 @@ int stk_seq(int argc, char *argv[])
 				if (seq_nt16to4_table[seq_nt16_table[(int)seq->seq.s[i]]] > 3) break;
 			if (i < seq->seq.l) continue;
 		}
-		stk_printseq(seq, line_len);
+
+		// Something in this block is causing a segfault
+		// If the -D flag has been invoked, check the heaer for membership, and only print if not there.
+        if (flag & 1024){
+            // Check if this header has been seen already.
+            dup_k = kh_get(32, dup_h, seq->name.s);
+            dup_is_missing = (dup_k == kh_end(dup_h));
+            // somewhere in here
+            if (dup_is_missing){
+                stk_printseq(seq, line_len);
+                kh_put(32, dup_h, seq->name.s, &dup_ret); // Add the header to the hash
+            }
+        } else {
+            stk_printseq(seq, line_len);
+        }
 	}
 	kseq_destroy(seq);
 	gzclose(fp);

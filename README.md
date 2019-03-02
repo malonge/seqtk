@@ -1,6 +1,8 @@
 Introduction
 ------------
 
+**malonge -- Added "-D" to "seqtk seq" to remove reads with duplicated headers**
+
 Seqtk is a fast and lightweight tool for processing sequences in the FASTA or
 FASTQ format. It seamlessly parses both FASTA and FASTQ files which can also be
 optionally compressed by gzip. To install `seqtk`,

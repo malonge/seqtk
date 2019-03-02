@@ -2,3 +2,6 @@
 *.a
 *.dSYM
 .*.swp
+*.f*q
+seqtk
+.idea
