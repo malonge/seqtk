@@ -1191,6 +1191,7 @@ int stk_seq(int argc, char *argv[])
 	khash_t(32) *dup_h = kh_init(32);
 	int dup_ret, dup_is_missing;
 	khiter_t dup_k;
+	char *dup_header;
 
 	while ((c = getopt(argc, argv, "N12q:l:Q:aACrn:s:f:M:L:cVUX:SF:D")) >= 0) {
 		switch (c) {
@@ -1328,17 +1329,20 @@ int stk_seq(int argc, char *argv[])
 
 		// If the -D flag has been invoked, check the heaer for membership, and only print if not there.
         if (flag & 1024){
+			dup_header = strdup(seq->name.s); // Make a copy of the read header
+
             // Check if this header has been seen already.
-            dup_k = kh_get(32, dup_h, seq->name.s);
+            dup_k = kh_get(32, dup_h, dup_header);
             dup_is_missing = (dup_k == kh_end(dup_h));
             if (dup_is_missing){
                 stk_printseq(seq, line_len);
-                kh_put(32, dup_h, seq->name.s, &dup_ret); // Add the header to the hash
+                kh_put(32, dup_h, dup_header, &dup_ret); // Add the header to the hash
             }
         } else {
             stk_printseq(seq, line_len);
         }
 	}
+	kh_destroy(32, dup_h);
 	kseq_destroy(seq);
 	gzclose(fp);
 	stk_reg_destroy(h);
