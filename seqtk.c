@@ -1329,12 +1329,13 @@ int stk_seq(int argc, char *argv[])
 
 		// If the -D flag has been invoked, check the heaer for membership, and only print if not there.
         if (flag & 1024){
-			dup_header = strdup(seq->name.s); // Make a copy of the read header
+
 
             // Check if this header has been seen already.
-            dup_k = kh_get(32, dup_h, dup_header);
+            dup_k = kh_get(32, dup_h, seq->name.s);
             dup_is_missing = (dup_k == kh_end(dup_h));
             if (dup_is_missing){
+				dup_header = strdup(seq->name.s); // Make a copy of the read header
                 stk_printseq(seq, line_len);
                 kh_put(32, dup_h, dup_header, &dup_ret); // Add the header to the hash
             }
@@ -1342,6 +1343,9 @@ int stk_seq(int argc, char *argv[])
             stk_printseq(seq, line_len);
         }
 	}
+
+	// Free up the duplicated keys
+	for(khiter_t ki = 0; ki != kh_end(dup_h); ++ki) if(kh_exist(dup_h, ki)) free((char *)dup_h->keys[ki]);
 	kh_destroy(32, dup_h);
 	kseq_destroy(seq);
 	gzclose(fp);
