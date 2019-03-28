@@ -1180,7 +1180,7 @@ int stk_seq(int argc, char *argv[])
 {
 	gzFile fp;
 	kseq_t *seq;
-	int c, qual_thres = 0, flag = 0, qual_shift = 33, mask_chr = 0, min_len = 0, max_q = 255, fake_qual = -1;
+	int c, qual_thres = 0, flag = 0, qual_shift = 33, mask_chr = 0, min_len = 0, max_q = 255, fake_qual = -1, min_avg_q = 0, avg_q_sum, avg_q;
 	unsigned i, line_len = 0;
 	int64_t n_seqs = 0;
 	double frac = 1.;
@@ -1193,7 +1193,7 @@ int stk_seq(int argc, char *argv[])
 	khiter_t dup_k;
 	char *dup_header;
 
-	while ((c = getopt(argc, argv, "N12q:l:Q:aACrn:s:f:M:L:cVUX:SF:D")) >= 0) {
+	while ((c = getopt(argc, argv, "N12q:l:Q:aACrn:s:f:M:L:cVUX:SF:B:D")) >= 0) {
 		switch (c) {
 			case 'a':
 			case 'A': flag |= 1; break;
@@ -1217,6 +1217,7 @@ int stk_seq(int argc, char *argv[])
 			case 's': kr = kr_srand(atol(optarg)); break;
 			case 'f': frac = atof(optarg); break;
 			case 'F': fake_qual = *optarg; break;
+			case 'B': min_avg_q = atoi(optarg); break;
 		}
 	}
 	if (kr == 0) kr = kr_srand(11);
@@ -1233,6 +1234,7 @@ int stk_seq(int argc, char *argv[])
 		fprintf(stderr, "         -M FILE   mask regions in BED or name list FILE [null]\n");
 		fprintf(stderr, "         -L INT    drop sequences with length shorter than INT [0]\n");
 		fprintf(stderr, "         -F CHAR   fake FASTQ quality []\n");
+		fprintf(stderr, "         -B INT    remove reads with average Q less than INT [0]\n");
 		fprintf(stderr, "         -c        mask complement region (effective with -M)\n");
 		fprintf(stderr, "         -r        reverse complement\n");
 		fprintf(stderr, "         -A        force FASTA output (discard quality)\n");
@@ -1288,6 +1290,18 @@ int stk_seq(int argc, char *argv[])
 						seq->seq.s[i] = tolower(seq->seq.s[i]);
 			}
 		}
+
+		// Filter reads by average Q
+		if (min_avg_q > 0){
+			// Iterate over the quality values to get their sum
+			avg_q_sum = 0;
+			for (i = 0; i < seq->seq.l; ++i){
+				avg_q_sum += seq->qual.s[i];
+			}
+			avg_q = avg_q_sum/seq->seq.l;
+			if ((avg_q-33) < min_avg_q) continue;
+		}
+
 		if (flag & 256) // option -U: convert to uppercases
 			for (i = 0; i < seq->seq.l; ++i)
 				seq->seq.s[i] = toupper(seq->seq.s[i]);
