@@ -2,6 +2,7 @@ Introduction
 ------------
 
 **malonge -- Added "-D" to "seqtk seq" to remove reads with duplicated headers**
+
 **malonge -- Added "-B" to "seqtk seq" to filter reads by the average Q value**
 
 Seqtk is a fast and lightweight tool for processing sequences in the FASTA or
