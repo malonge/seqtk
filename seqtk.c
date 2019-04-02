@@ -1235,7 +1235,7 @@ int stk_seq(int argc, char *argv[])
 		fprintf(stderr, "         -M FILE   mask regions in BED or name list FILE [null]\n");
 		fprintf(stderr, "         -L INT    drop sequences with length shorter than INT [0]\n");
 		fprintf(stderr, "         -F CHAR   fake FASTQ quality []\n");
-		fprintf(stderr, "         -B INT    remove reads with average Q less than FLOAT [0.0]\n");
+		fprintf(stderr, "         -B FLOAT  remove reads with average Q less than FLOAT [0.0]\n");
 		fprintf(stderr, "         -c        mask complement region (effective with -M)\n");
 		fprintf(stderr, "         -r        reverse complement\n");
 		fprintf(stderr, "         -A        force FASTA output (discard quality)\n");
