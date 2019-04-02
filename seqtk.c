@@ -1180,7 +1180,8 @@ int stk_seq(int argc, char *argv[])
 {
 	gzFile fp;
 	kseq_t *seq;
-	int c, qual_thres = 0, flag = 0, qual_shift = 33, mask_chr = 0, min_len = 0, max_q = 255, fake_qual = -1, min_avg_q = 0, avg_q_sum, avg_q;
+	int c, qual_thres = 0, flag = 0, qual_shift = 33, mask_chr = 0, min_len = 0, max_q = 255, fake_qual = -1;
+	float min_avg_q = 0, avg_q_sum, avg_q;
 	unsigned i, line_len = 0;
 	int64_t n_seqs = 0;
 	double frac = 1.;
@@ -1217,7 +1218,7 @@ int stk_seq(int argc, char *argv[])
 			case 's': kr = kr_srand(atol(optarg)); break;
 			case 'f': frac = atof(optarg); break;
 			case 'F': fake_qual = *optarg; break;
-			case 'B': min_avg_q = atoi(optarg); break;
+			case 'B': min_avg_q = atof(optarg); break;
 		}
 	}
 	if (kr == 0) kr = kr_srand(11);
@@ -1234,7 +1235,7 @@ int stk_seq(int argc, char *argv[])
 		fprintf(stderr, "         -M FILE   mask regions in BED or name list FILE [null]\n");
 		fprintf(stderr, "         -L INT    drop sequences with length shorter than INT [0]\n");
 		fprintf(stderr, "         -F CHAR   fake FASTQ quality []\n");
-		fprintf(stderr, "         -B INT    remove reads with average Q less than INT [0]\n");
+		fprintf(stderr, "         -B INT    remove reads with average Q less than FLOAT [0.0]\n");
 		fprintf(stderr, "         -c        mask complement region (effective with -M)\n");
 		fprintf(stderr, "         -r        reverse complement\n");
 		fprintf(stderr, "         -A        force FASTA output (discard quality)\n");
@@ -1291,7 +1292,7 @@ int stk_seq(int argc, char *argv[])
 			}
 		}
 
-		// Filter reads by average Q
+		// Filter reads by average Q (-B)
 		if (min_avg_q > 0){
 			// Iterate over the quality values to get their sum
 			avg_q_sum = 0;
