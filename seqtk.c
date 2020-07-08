@@ -1430,6 +1430,67 @@ int stk_gc(int argc, char *argv[])
 	return 0;
 }
 
+int stk_ga(int argc, char *argv[])
+{
+    int c, is_ct = 0, min_l = 20;
+    double frac = 0.6f, xdropoff = 10.0f, q;
+    gzFile fp;
+    kseq_t *seq;
+
+    while ((c = getopt(argc, argv, "wx:f:l:")) >= 0) {
+        if (c == 'x') xdropoff = atof(optarg);
+        else if (c == 'w') is_ct = 1;
+        else if (c == 'f') frac = atof(optarg);
+        else if (c == 'l') min_l = atoi(optarg);
+    }
+    if (optind + 1 > argc) {
+        fprintf(stderr, "Usage: seqtk ga [options] <in.fa>\n");
+        fprintf(stderr, "Options:\n");
+        fprintf(stderr, "  -w         identify high-CT regions\n");
+        fprintf(stderr, "  -f FLOAT   min GA fraction (or CT fraction for -w) [%.2f]\n", frac);
+        fprintf(stderr, "  -l INT     min region length to output [%d]\n", min_l);
+        fprintf(stderr, "  -x FLOAT   X-dropoff [%.1f]\n", xdropoff);
+        return 1;
+    }
+    q = (1.0f - frac) / frac;
+
+    fp = strcmp(argv[optind], "-")? gzopen(argv[optind], "r") : gzdopen(fileno(stdin), "r");
+    if (fp == 0) {
+        fprintf(stderr, "[E::%s] failed to open the input file/stream.\n", __func__);
+        return 1;
+    }
+    seq = kseq_init(fp);
+    while (kseq_read(seq) >= 0) {
+        int i, start = 0, max_i = 0, n_hits = 0, start_hits = 0, max_hits = 0;
+        double sc = 0., max = 0.;
+        for (i = 0; i < seq->seq.l; ++i) {
+            int hit;
+            c = seq_nt16_table[(int)seq->seq.s[i]];
+            if (is_ct) hit = (c == 2 || c == 8 || c == 10);
+            else hit = (c == 1 || c == 4 || c == 5);
+            n_hits += hit;
+            if (hit) {
+                if (sc == 0) start = i, start_hits = n_hits;
+                sc += q;
+                if (sc > max) max = sc, max_i = i, max_hits = n_hits;
+            } else if (sc > 0) {
+                sc += -1.0f;
+                if (sc < 0 || max - sc > xdropoff) {
+                    if (max_i + 1 - start >= min_l)
+                        printf("%s\t%d\t%d\t%d\n", seq->name.s, start, max_i + 1, max_hits - start_hits + 1);
+                    sc = max = 0;
+                    i = max_i;
+                }
+            }
+        }
+        if (max > 0. && max_i + 1 - start >= min_l)
+            printf("%s\t%d\t%d\t%d\n", seq->name.s, start, max_i + 1, max_hits - start_hits + 1);
+    }
+    kseq_destroy(seq);
+    gzclose(fp);
+    return 0;
+}
+
 int stk_mergepe(int argc, char *argv[])
 {
 	gzFile fp1, fp2;
@@ -1728,6 +1789,7 @@ static int usage()
 	fprintf(stderr, "         trimfq    trim FASTQ using the Phred algorithm\n\n");
 	fprintf(stderr, "         hety      regional heterozygosity\n");
 	fprintf(stderr, "         gc        identify high- or low-GC regions\n");
+    fprintf(stderr, "         ga        identify high- or low-GA regions\n");
 	fprintf(stderr, "         mutfa     point mutate FASTA at specified positions\n");
 	fprintf(stderr, "         mergefa   merge two FASTA/Q files\n");
 	fprintf(stderr, "         famask    apply a X-coded FASTA to a source FASTA\n");
@@ -1747,6 +1809,7 @@ int main(int argc, char *argv[])
 	else if (strcmp(argv[1], "fqchk") == 0) return stk_fqchk(argc-1, argv+1);
 	else if (strcmp(argv[1], "hety") == 0) return stk_hety(argc-1, argv+1);
 	else if (strcmp(argv[1], "gc") == 0) return stk_gc(argc-1, argv+1);
+    else if (strcmp(argv[1], "ga") == 0) return stk_ga(argc-1, argv+1);
 	else if (strcmp(argv[1], "subseq") == 0) return stk_subseq(argc-1, argv+1);
 	else if (strcmp(argv[1], "mutfa") == 0) return stk_mutfa(argc-1, argv+1);
 	else if (strcmp(argv[1], "mergefa") == 0) return stk_mergefa(argc-1, argv+1);
